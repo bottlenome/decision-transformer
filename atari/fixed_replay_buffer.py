@@ -5,7 +5,6 @@ from concurrent import futures
 from dopamine.replay_memory import circular_replay_buffer
 import numpy as np
 import tensorflow.compat.v1 as tf
-import gin
 
 gfile = tf.gfile
 
