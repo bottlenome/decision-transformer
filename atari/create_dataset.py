@@ -21,7 +21,9 @@ class StateActionReturnDataset(Dataset):
         return len(self.data) - self.block_size
 
     def __getitem__(self, idx):
+        # idx is the index of the first state in the block
         block_size = self.block_size // 3
+        # find the first done index greater than idx
         done_idx = idx + block_size
         for i in self.done_idxs:
             if i > idx: # first done_idx greater than idx
@@ -37,7 +39,21 @@ class StateActionReturnDataset(Dataset):
         return states, actions, rtgs, timesteps
 
 
-def create_dataset(num_buffers, num_steps, game, data_dir_prefix, trajectories_per_buffer):
+def create_dataset(num_buffers, num_steps, game, data_dir_prefix, trajectories_per_buffer, episode="1"):
+    """
+    Create a dataset from a fixed replay buffer
+
+    Args:
+        num_buffers (int): number of buffers to sample from.
+            num_buffers=10 means sample from buffers 40-49
+        num_steps (int): number of steps to sample
+            num_steps=1000 means sample 1000 steps
+        game (str): name of the game
+            game='Breakout' means sample from Breakout
+        data_dir_prefix (str): prefix of the data directory
+        trajectories_per_buffer (int): number of trajectories to sample from each buffer
+            trajectories_per_buffer=10 means sample 10 trajectories from each buffer
+    """
     # -- load data from memory (make more efficient)
     obss = []
     actions = []
@@ -52,7 +68,7 @@ def create_dataset(num_buffers, num_steps, game, data_dir_prefix, trajectories_p
         i = transitions_per_buffer[buffer_num]
         print('loading from buffer %d which has %d already loaded' % (buffer_num, i))
         frb = FixedReplayBuffer(
-            data_dir=data_dir_prefix + game + '/1/replay_logs',
+            data_dir=data_dir_prefix + game + f'/{episode}/replay_logs',
             replay_suffix=buffer_num,
             observation_shape=(84, 84),
             stack_size=4,
@@ -66,6 +82,15 @@ def create_dataset(num_buffers, num_steps, game, data_dir_prefix, trajectories_p
             curr_num_transitions = len(obss)
             trajectories_to_load = trajectories_per_buffer
             while not done:
+                # sample a transition
+                # states: states of shape (batch_size, 84, 84, 4)
+                # ac: actions of shape (batch_size,)
+                # ret: returns of shape (batch_size,)
+                # next_states: next_states of shape (batch_size, 84, 84, 4)
+                # next_action: next_actions of shape (batch_size,)
+                # next_reward: next_rewards of shape (batch_size,)
+                # terminal: terminals of shape (batch_size,)
+                # indices: indices of the transitions
                 states, ac, ret, next_states, next_action, next_reward, terminal, indices = frb.sample_transition_batch(batch_size=1, indices=[i])
                 states = states.transpose((0, 3, 1, 2))[0] # (1, 84, 84, 4) --> (4, 84, 84)
                 obss += [states]
