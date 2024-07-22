@@ -134,11 +134,21 @@ class GPT(nn.Module):
         self.drop = nn.Dropout(config.embd_pdrop)
 
         # transformer
-        # self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
-        # from .up_causal_unet import UpCasualUnet
-        # self.blocks = nn.Sequential(*[UpCasualUnet(config.n_embd, config.block_size) for _ in range(config.n_layer)])
-        from .up_causal_unet import StackedUnet
-        self.blocks = StackedUnet(config.vocab_size, config.n_embd, config.n_layer, max_len=config.block_size, enable_embed=False)
+        if self.config.model_name == 'gpt':
+            self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
+        elif self.config.model_name == 'up-causal':
+            from .up_causal_unet import StackedUnet
+            self.blocks = StackedUnet(config.vocab_size, config.n_embd, config.n_layer, max_len=config.block_size, enable_embed=False)
+        elif self.config.model_name == 'reformer':
+            from reformer_pytorch import Reformer
+            self.blocks = Reformer(
+                dim=config.n_embd,
+                depth=config.n_layer,
+                heads=config.n_head,
+                lsh_dropout=config.attn_pdrop,
+                causal=True)
+        else:
+            raise NotImplementedError()
         # decoder head
         self.ln_f = nn.LayerNorm(config.n_embd)
         self.head = nn.Linear(config.n_embd, config.vocab_size, bias=False)

@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--context_length', type=int, default=30)
     parser.add_argument('--epochs', type=int, default=5)
     parser.add_argument('--model_type', type=str, default='reward_conditioned')
+    parser.add_argument('--model_name', type=str, default='gpt')
     parser.add_argument('--num_steps', type=int, default=500000)
     parser.add_argument('--num_buffers', type=int, default=50)
     parser.add_argument('--game', type=str, default='Breakout')
@@ -42,7 +43,8 @@ if __name__ == '__main__':
     train_dataset = StateActionReturnDataset(obss, args.context_length*3, actions, done_idxs, rtgs, timesteps)
 
     mconf = GPTConfig(train_dataset.vocab_size, train_dataset.block_size,
-                    n_layer=6, n_head=8, n_embd=128, model_type=args.model_type, max_timestep=max(timesteps))
+                    n_layer=6, n_head=8, n_embd=128,
+                    model_type=args.model_type, model_name=args.model_name, max_timestep=max(timesteps))
     model = GPT(mconf)
 
     # initialize a trainer instance and kick off training
