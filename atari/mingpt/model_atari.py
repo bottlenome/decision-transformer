@@ -134,7 +134,11 @@ class GPT(nn.Module):
         self.drop = nn.Dropout(config.embd_pdrop)
 
         # transformer
-        self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
+        # self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
+        # from .up_causal_unet import UpCasualUnet
+        # self.blocks = nn.Sequential(*[UpCasualUnet(config.n_embd, config.block_size) for _ in range(config.n_layer)])
+        from .up_causal_unet import StackedUnet
+        self.blocks = StackedUnet(config.vocab_size, config.n_embd, config.n_layer, max_len=config.block_size, enable_embed=False)
         # decoder head
         self.ln_f = nn.LayerNorm(config.n_embd)
         self.head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
@@ -180,7 +184,7 @@ class GPT(nn.Module):
         decay = set()
         no_decay = set()
         # whitelist_weight_modules = (torch.nn.Linear, )
-        whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv2d)
+        whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv2d, torch.nn.Conv1d, torch.nn.ConvTranspose1d)
         blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding)
         for mn, m in self.named_modules():
             for pn, p in m.named_parameters():
