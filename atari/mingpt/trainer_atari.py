@@ -26,8 +26,8 @@ from torch.utils.data.dataloader import DataLoader
 
 logger = logging.getLogger(__name__)
 
-from mingpt.utils import sample
-import atari_py
+from .utils import sample
+import ale_py
 from collections import deque
 import random
 import cv2
@@ -173,7 +173,7 @@ class Trainer:
 
     def get_returns(self, ret):
         self.model.train(False)
-        args=Args(self.config.game.lower(), self.config.seed)
+        args=Args(self.config.game, self.config.seed)
         env = Env(args)
         env.eval()
 
@@ -225,13 +225,24 @@ class Trainer:
 class Env():
     def __init__(self, args):
         self.device = args.device
-        self.ale = atari_py.ALEInterface()
+        self.ale = ale_py.ALEInterface()
         self.ale.setInt('random_seed', args.seed)
         self.ale.setInt('max_num_frames_per_episode', args.max_episode_length)
         self.ale.setFloat('repeat_action_probability', 0)  # Disable sticky actions
         self.ale.setInt('frame_skip', 0)
         self.ale.setBool('color_averaging', False)
-        self.ale.loadROM(atari_py.get_game_path(args.game))  # ROM loading must be done after setting options
+        import ale_py.roms as roms
+        if args.game == 'Breakout':
+            game = roms.Breakout
+        elif args.game == 'Seaquest':
+            game = roms.Seaquest
+        elif args.game == 'Qbert':
+            game = roms.Qbert
+        elif args.game == 'Pong':
+            game = roms.Pong
+        else:
+            raise NotImplementedError()
+        self.ale.loadROM(game)  # ROM loading must be done after setting options
         actions = self.ale.getMinimalActionSet()
         self.actions = dict([i, e] for i, e in zip(range(len(actions)), actions))
         self.lives = 0  # Life counter (used in DeepMind training)
@@ -314,6 +325,6 @@ class Args:
     def __init__(self, game, seed):
         self.device = torch.device('cuda')
         self.seed = seed
-        self.max_episode_length = 108e3
+        self.max_episode_length = int(108e3)
         self.game = game
         self.history_length = 4

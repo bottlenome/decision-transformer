@@ -9,7 +9,7 @@ from .mingpt.trainer_atari import Trainer, TrainerConfig
 from .mingpt.utils import sample
 import torch
 import argparse
-from create_dataset import create_dataset, StateActionReturnDataset
+from .create_dataset import create_dataset, StateActionReturnDataset
 
 
 
